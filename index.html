@@ -1198,6 +1198,55 @@ function formatMarkdown(text) {
 
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('无法读取图片'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function prepareExportImages(root) {
+      const images = Array.from(root.querySelectorAll('img'));
+      let replacedCount = 0;
+      for (const img of images) {
+        const src = img.getAttribute('src') || '';
+        if (!src || src.startsWith('data:')) continue;
+
+        try {
+          const response = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          const dataUrl = await blobToDataUrl(blob);
+          img.setAttribute('src', dataUrl);
+          img.setAttribute('crossorigin', 'anonymous');
+        } catch (error) {
+          const alt = img.getAttribute('alt') || 'Image';
+          const placeholder = root.ownerDocument.createElement('div');
+          placeholder.className = 'export-image-placeholder';
+          placeholder.textContent = `${alt}（PNG 导出时已省略）`;
+          placeholder.style.cssText = [
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'min-height:96px',
+            'padding:16px',
+            'margin:14px 0',
+            'border:1px solid rgba(60,60,67,0.08)',
+            'border-radius:16px',
+            'background:#f5f5f7',
+            'color:#6e6e73',
+            'font:500 13px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif',
+            'text-align:center'
+          ].join(';');
+          img.replaceWith(placeholder);
+          replacedCount += 1;
+        }
+      }
+      return replacedCount;
+    }
+
     function buildExportStyles() {
       return `
 :root {
@@ -1500,6 +1549,10 @@ ${buildExportStyles()}
 
         const page = iframeDoc.querySelector('.export-page');
         if (!page) throw new Error('未找到导出内容');
+        const replacedCount = await prepareExportImages(page);
+        if (replacedCount > 0) {
+          showToast(`有 ${replacedCount} 张图片未能内联，已替换占位`);
+        }
 
         const rect = page.getBoundingClientRect();
         const width = Math.ceil(rect.width);
