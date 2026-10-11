@@ -5,1493 +5,136 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="把 Markdown 快速转换成可直接粘贴到公众号的精致排版。" />
   <title>Jackson | Markdown 编辑器</title>
-  <style>
-    :root {
-      --bg: #f5f5f7;
-      --bg-2: #ececf1;
-      --panel: rgba(255, 255, 255, 0.82);
-      --panel-strong: rgba(255, 255, 255, 0.96);
-      --panel-dark: rgba(255, 255, 255, 0.76);
-      --line: rgba(60, 60, 67, 0.10);
-      --line-strong: rgba(60, 60, 67, 0.16);
-      --text: #1d1d1f;
-      --muted: #6e6e73;
-      --accent: #1d1d1f;
-      --accent-2: #111111;
-      --accent-soft: rgba(29, 29, 31, 0.08);
-      --code-bg: #f5f5f7;
-      --shadow: 0 18px 48px rgba(0, 0, 0, 0.06);
-      --paper-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
-      --radius-lg: 28px;
-      --radius-md: 18px;
-      --radius-sm: 14px;
-      --editor-font: "Iosevka", "SFMono-Regular", "Cascadia Code", "Menlo", "Consolas", monospace;
-      --preview-serif: "SF Pro Text", "SF Pro Display", "Inter", "Helvetica Neue", "Arial", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      --preview-sans: "SF Pro Text", "SF Pro Display", "Inter", "Helvetica Neue", "Arial", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 10% 8%, rgba(29, 29, 31, 0.04), transparent 24%),
-        radial-gradient(circle at 90% 10%, rgba(60, 60, 67, 0.04), transparent 22%),
-        linear-gradient(180deg, #fafafa 0%, #f5f5f7 46%, #f0f0f3 100%);
-      font-family: var(--preview-serif);
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(60, 60, 67, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(60, 60, 67, 0.025) 1px, transparent 1px);
-      background-size: 64px 64px;
-      opacity: 0.55;
-      mask-image: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 96%);
-    }
-
-    .page {
-      position: relative;
-      width: min(1440px, calc(100vw - 28px));
-      margin: 0 auto;
-      padding: 18px 0 28px;
-    }
-
-    .shell {
-      position: relative;
-      display: grid;
-      grid-template-rows: auto 1fr;
-      gap: 18px;
-      min-height: calc(100vh - 46px);
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 18px 20px;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      border-radius: var(--radius-lg);
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(18px);
-      box-shadow: var(--shadow);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .mark {
-      width: 50px;
-      height: 50px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      color: #fff;
-      background:
-        linear-gradient(145deg, #1d1d1f, #3a3a3c);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 18px rgba(0, 0, 0, 0.10);
-      overflow: hidden;
-      font: 700 20px/1 var(--preview-sans);
-    }
-
-    .mark img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 18px;
-      letter-spacing: 0.04em;
-      font-weight: 700;
-    }
-
-    .brand p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font: 500 12px/1.5 var(--preview-sans);
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .editor-actions {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .doc-stats {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0;
-      color: var(--muted);
-      font: 500 12px/1 var(--preview-sans);
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
-
-    .doc-stats::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(60, 60, 67, 0.42);
-    }
-
-    .btn {
-      border: 1px solid rgba(60, 60, 67, 0.10);
-      background: rgba(255,255,255,0.82);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 15px;
-      font: 600 13px/1 var(--preview-sans);
-      cursor: pointer;
-      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      border-color: rgba(29, 29, 31, 0.18);
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
-    }
-
-    .btn.primary {
-      background: linear-gradient(145deg, #2c2c2e, #111111);
-      color: #fff;
-      border-color: transparent;
-    }
-
-    .workspace {
-      display: grid;
-      grid-template-columns: minmax(360px, 0.92fr) minmax(420px, 1.08fr);
-      gap: 18px;
-      min-height: 0;
-    }
-
-    .panel {
-      position: relative;
-      min-height: 0;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      border-radius: var(--radius-lg);
-      background: var(--panel);
-      backdrop-filter: blur(20px);
-      box-shadow: var(--paper-shadow);
-      overflow: hidden;
-    }
-
-    .panel-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 18px 18px 14px;
-      border-bottom: 1px solid rgba(60, 60, 67, 0.08);
-      background: rgba(255,255,255,0.72);
-      min-height: 86px;
-    }
-
-    .preview-head {
-      min-height: 86px;
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 14px;
-      letter-spacing: 0.14em;
-      font-family: var(--preview-sans);
-      text-transform: uppercase;
-    }
-
-    .panel-head .hint {
-      margin: 0;
-      color: var(--muted);
-      font: 500 12px/1.45 var(--preview-sans);
-    }
-
-    .mode-switch {
-      display: inline-flex;
-      gap: 6px;
-      padding: 5px;
-      border-radius: 999px;
-      border: 1px solid rgba(60, 60, 67, 0.10);
-      background: rgba(255,255,255,0.82);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
-    }
-
-    .mode-switch button {
-      border: 0;
-      border-radius: 999px;
-      background: transparent;
-      color: var(--muted);
-      padding: 9px 13px;
-      font: 600 12px/1 var(--preview-sans);
-      cursor: pointer;
-      transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
-    }
-
-    .mode-switch button[aria-pressed="true"] {
-      background: linear-gradient(145deg, #2c2c2e, #111111);
-      color: #fff;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
-    }
-
-    .inline-btn {
-      border: 1px solid rgba(60, 60, 67, 0.10);
-      background: rgba(255,255,255,0.86);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 8px 12px;
-      font: 600 12px/1 var(--preview-sans);
-      cursor: pointer;
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
-      white-space: nowrap;
-    }
-
-    .inline-btn:hover {
-      transform: translateY(-1px);
-      border-color: rgba(29, 29, 31, 0.18);
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
-    }
-
-    .editor-wrap {
-      position: relative;
-      height: calc(100vh - 182px);
-      min-height: 620px;
-    }
-
-    textarea {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      outline: 0;
-      resize: none;
-      padding: 20px 22px 24px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.54)),
-        rgba(255,255,255,0.22);
-      color: #1d1d1f;
-      font: 500 15px/1.8 var(--editor-font);
-      letter-spacing: 0.01em;
-      tab-size: 2;
-      caret-color: var(--accent);
-      overflow: auto;
-    }
-
-    textarea::selection {
-      background: rgba(122, 78, 43, 0.18);
-    }
-
-    .preview {
-      display: flex;
-      align-items: stretch;
-      height: calc(100vh - 182px);
-      min-height: 620px;
-      overflow: auto;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.54), rgba(248,248,250,0.96));
-    }
-
-    .preview-stage {
-      width: 100%;
-      min-height: 100%;
-      padding: 30px 18px 34px;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    .paper {
-      width: min(100%, 880px);
-      margin: 0 auto;
-      padding: 36px 38px 46px;
-      color: #1d1d1f;
-      font-family: var(--preview-serif);
-      font-size: 14px;
-      line-height: 2.0;
-      letter-spacing: 0;
-    }
-
-    .preview[data-mode="mobile"] {
-      background:
-        linear-gradient(180deg, rgba(248,248,250,0.96), rgba(241,241,244,0.96));
-    }
-
-    .preview[data-mode="mobile"] .preview-stage {
-      padding: 22px 16px 26px;
-    }
-
-    .preview[data-mode="mobile"] .paper {
-      width: min(390px, 100%);
-      padding: 24px 20px 30px;
-      border-radius: 28px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
-      font-size: 14px;
-      line-height: 2.0;
-      background: rgba(255,255,255,0.92);
-    }
-
-    .preview[data-mode="wechat"] {
-      background:
-        linear-gradient(180deg, rgba(248,248,250,0.96), rgba(242,242,245,0.96));
-    }
-
-    .preview[data-mode="wechat"] .preview-stage {
-      padding: 22px 16px 26px;
-    }
-
-    .preview[data-mode="wechat"] .paper {
-      width: min(375px, 100%);
-      padding: 24px 20px 30px;
-      border-radius: 24px;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      box-shadow: none;
-      background: #ffffff;
-      font-size: 14px;
-      line-height: 2.0;
-    }
-
-    .paper > :first-child { margin-top: 0; }
-    .paper > :last-child { margin-bottom: 0; }
-
-    .paper h1,
-    .paper h2,
-    .paper h3,
-    .paper h4 {
-      margin: 1.2em 0 0.45em;
-      line-height: 1.22;
-      letter-spacing: 0.01em;
-      font-family: var(--preview-serif);
-      color: #1d1d1f;
-    }
-
-    .paper h1 {
-      font-size: clamp(18px, 1.6vw, 22px);
-      margin-top: 0;
-      padding-bottom: 0.28em;
-      border-bottom: 1px solid rgba(60, 60, 67, 0.10);
-    }
-
-    .paper h2 {
-      font-size: clamp(15px, 1.3vw, 17px);
-      position: relative;
-      padding-left: 0;
-      padding-bottom: 0.35em;
-      border-bottom: 1px solid rgba(60, 60, 67, 0.10);
-    }
-
-    .paper h2::before {
-      content: none;
-    }
-
-    .paper h3 { font-size: clamp(14px, 1.1vw, 16px); }
-    .paper h4 { font-size: 12px; font-family: var(--preview-sans); letter-spacing: 0.03em; }
-
-    .paper p {
-      margin: 0 0 1em;
-      color: #5e5e63;
-      font-size: 1em;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .paper a {
-      color: #111111;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 0.16em;
-    }
-
-    .paper strong {
-      color: #1d1d1f;
-      font-weight: 700;
-    }
-
-    .paper em {
-      color: #5a5a5f;
-    }
-
-    .paper code {
-      padding: 0.14em 0.36em;
-      border-radius: 8px;
-      background: var(--code-bg);
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      font-family: var(--editor-font);
-      font-size: 0.9em;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .paper pre {
-      margin: 1.15em 0;
-      padding: 18px 20px;
-      overflow: auto;
-      border-radius: 18px;
-      background: #f5f5f7;
-      color: #1d1d1f;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      box-shadow: none;
-      font-size: 0.9em;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .paper pre code {
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      font-size: 0.92em;
-      line-height: 1.72;
-    }
-
-    .paper blockquote {
-      margin: 1.2em 0;
-      padding: 14px 18px;
-      border-left: 4px solid rgba(29, 29, 31, 0.32);
-      border-radius: 0 16px 16px 0;
-      background: rgba(29, 29, 31, 0.04);
-      color: #4a4a4d;
-    }
-
-    .paper ul,
-    .paper ol {
-      padding-left: 1.35em;
-      margin: 0 0 1em;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .paper li {
-      margin: 0.34em 0;
-    }
-
-    .paper hr {
-      margin: 1.4em 0;
-      border: 0;
-      border-top: 1px solid rgba(60, 60, 67, 0.10);
-    }
-
-    .paper table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1.15em 0;
-      font-size: 0.96em;
-      overflow: hidden;
-      border-radius: 16px;
-      table-layout: fixed;
-    }
-
-    .paper th,
-    .paper td {
-      padding: 11px 13px;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .paper th {
-      background: rgba(60, 60, 67, 0.04);
-      font-family: var(--preview-sans);
-      font-size: 0.88em;
-      letter-spacing: 0.04em;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .paper td {
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .paper img {
-      max-width: 100%;
-      border-radius: 18px;
-      display: block;
-      margin: 1.1em auto;
-      box-shadow: 0 14px 24px rgba(34, 20, 10, 0.12);
-    }
-
-    .paper .lead {
-      font-size: 1em;
-      color: #2f2f33;
-    }
-
-    .preview-empty,
-    .meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(60, 60, 67, 0.10);
-      background: rgba(255,255,255,0.84);
-      color: #4b4b51;
-      font: 600 12px/1 var(--preview-sans);
-      letter-spacing: 0.03em;
-    }
-
-    .badge::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, #3a3a3c, #1d1d1f);
-      box-shadow: 0 0 0 3px rgba(29, 29, 31, 0.08);
-    }
-
-    .empty {
-      display: grid;
-      place-items: center;
-      height: 100%;
-      padding: 30px;
-      text-align: center;
-      color: var(--muted);
-      font: 500 15px/1.8 var(--preview-sans);
-    }
-
-    .empty strong {
-      display: block;
-      margin-bottom: 10px;
-      color: var(--text);
-      font-size: 18px;
-      letter-spacing: 0.04em;
-    }
-
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: center;
-      padding: 0 4px;
-      color: rgba(60, 60, 67, 0.64);
-      font: 500 12px/1.7 var(--preview-sans);
-    }
-
-    .footer .stats {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .footer .stats span {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 11px;
-      border: 1px solid rgba(60, 60, 67, 0.08);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.78);
-    }
-
-    .footer .stats b {
-      color: #1d1d1f;
-    }
-
-    .footer a {
-      color: #6e6e73;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 160ms ease, opacity 160ms ease;
-    }
-
-    .footer a:hover {
-      color: #1d1d1f;
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    @media (max-width: 1100px) {
-      .workspace {
-        grid-template-columns: 1fr;
-      }
-
-      .editor-wrap,
-      .preview {
-        height: auto;
-        min-height: 520px;
-      }
-
-      .panel {
-        min-height: 0;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .page {
-        width: min(100vw - 14px, 1440px);
-        padding-top: 8px;
-      }
-
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .toolbar {
-        width: 100%;
-        justify-content: flex-start;
-      }
-
-      .panel-head {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .paper {
-        padding: 28px 22px 40px;
-        font-size: 17px;
-      }
-
-      textarea {
-        padding: 18px;
-        font-size: 14px;
-      }
-    }
-
-    /* Interaction-first workspace */
-    :root {
-      --canvas: #f3f1ec;
-      --surface: #ffffff;
-      --surface-subtle: #f8f7f4;
-      --ink: #191918;
-      --ink-soft: #6f6d66;
-      --hairline: #e7e4dd;
-      --wechat: #07883f;
-      --wechat-hover: #066f35;
-      --focus: rgba(7, 136, 63, 0.18);
-    }
-
-    html,
-    body {
-      background: var(--canvas);
-    }
-
-    body::before {
-      display: none;
-    }
-
-    button,
-    textarea {
-      font-family: inherit;
-    }
-
-    button:focus-visible,
-    textarea:focus-visible,
-    a:focus-visible {
-      outline: 3px solid var(--focus);
-      outline-offset: 2px;
-    }
-
-    .app-shell {
-      width: min(1520px, 100%);
-      min-height: 100vh;
-      margin: 0 auto;
-      padding: 0 28px 22px;
-    }
-
-    .app-header {
-      height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      border-bottom: 1px solid rgba(25, 25, 24, 0.10);
-    }
-
-    .app-brand {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      min-width: 0;
-    }
-
-    .app-brand .mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      box-shadow: none;
-    }
-
-    .brand-copy strong {
-      display: block;
-      color: var(--ink);
-      font-size: 14px;
-      line-height: 1.2;
-      letter-spacing: -0.01em;
-    }
-
-    .brand-copy span {
-      display: block;
-      margin-top: 3px;
-      color: var(--ink-soft);
-      font-size: 11px;
-      line-height: 1.2;
-    }
-
-    .privacy-note {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--ink-soft);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .privacy-note::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--wechat);
-      box-shadow: 0 0 0 4px rgba(7, 136, 63, 0.10);
-    }
-
-    .workflow {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      max-width: 620px;
-      margin: 22px auto 18px;
-      color: var(--ink-soft);
-      font-size: 12px;
-    }
-
-    .workflow-step {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .workflow-step:nth-child(2) {
-      justify-content: center;
-    }
-
-    .workflow-step:nth-child(3) {
-      justify-content: flex-end;
-    }
-
-    .workflow-step:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: calc(50% + 34px);
-      width: calc(100% - 68px);
-      height: 1px;
-      background: #d7d3ca;
-    }
-
-    .step-number {
-      width: 22px;
-      height: 22px;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      border: 1px solid #d7d3ca;
-      border-radius: 50%;
-      background: var(--canvas);
-      color: var(--ink-soft);
-      font-size: 11px;
-      font-weight: 700;
-      z-index: 1;
-    }
-
-    .workflow-step.is-active {
-      color: var(--ink);
-      font-weight: 650;
-    }
-
-    .workflow-step.is-active .step-number {
-      border-color: var(--ink);
-      background: var(--ink);
-      color: white;
-    }
-
-    .workflow-step.is-complete .step-number {
-      border-color: rgba(7, 136, 63, 0.28);
-      background: rgba(7, 136, 63, 0.10);
-      color: var(--wechat);
-    }
-
-    .mobile-workspace-switch {
-      display: none;
-    }
-
-    .workspace-v2 {
-      display: grid;
-      grid-template-columns: minmax(360px, 0.84fr) minmax(520px, 1.16fr);
-      min-height: calc(100vh - 174px);
-      overflow: hidden;
-      border: 1px solid rgba(25, 25, 24, 0.10);
-      border-radius: 22px;
-      background: var(--surface);
-      box-shadow: 0 16px 44px rgba(42, 38, 30, 0.07);
-    }
-
-    .work-panel {
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface);
-    }
-
-    .source-panel {
-      border-right: 1px solid var(--hairline);
-    }
-
-    .panel-toolbar-v2 {
-      min-height: 86px;
-      padding: 18px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      border-bottom: 1px solid var(--hairline);
-      background: rgba(255, 255, 255, 0.96);
-    }
-
-    .eyebrow {
-      display: block;
-      margin-bottom: 5px;
-      color: var(--ink-soft);
-      font-size: 10px;
-      font-weight: 750;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .panel-title-v2 {
-      margin: 0;
-      color: var(--ink);
-      font-size: 16px;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-    }
-
-    .utility-actions,
-    .output-actions-v2 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .quiet-btn,
-    .secondary-btn,
-    .primary-action {
-      border: 0;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 650;
-      line-height: 1;
-      transition: background 150ms ease, color 150ms ease, transform 150ms ease, opacity 150ms ease;
-    }
-
-    .quiet-btn {
-      padding: 9px 10px;
-      background: transparent;
-      color: var(--ink-soft);
-    }
-
-    .quiet-btn:hover {
-      background: var(--surface-subtle);
-      color: var(--ink);
-    }
-
-    .quiet-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.35;
-    }
-
-    .source-editor {
-      position: relative;
-      flex: 1;
-      min-height: 0;
-      background: var(--surface);
-    }
-
-    .source-editor textarea {
-      height: 100%;
-      min-height: 520px;
-      padding: 26px 24px 32px;
-      background: transparent;
-      color: #252522;
-      font: 500 14px/1.85 var(--editor-font);
-      letter-spacing: 0;
-    }
-
-    .source-editor textarea::placeholder {
-      color: #aaa69c;
-    }
-
-    .source-footer {
-      min-height: 54px;
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-top: 1px solid var(--hairline);
-      background: var(--surface-subtle);
-      color: var(--ink-soft);
-      font-size: 11px;
-    }
-
-    .doc-stats {
-      font-size: 11px;
-    }
-
-    .doc-stats::before {
-      background: var(--wechat);
-    }
-
-    .shortcut-hint kbd {
-      padding: 2px 5px;
-      border: 1px solid #dad6cc;
-      border-bottom-width: 2px;
-      border-radius: 5px;
-      background: white;
-      color: var(--ink-soft);
-      font: 600 10px/1 var(--preview-sans);
-    }
-
-    .preview-toolbar-v2 {
-      align-items: flex-end;
-    }
-
-    .mode-switch-v2 {
-      display: inline-flex;
-      gap: 3px;
-      padding: 3px;
-      border-radius: 10px;
-      background: #f0eee9;
-    }
-
-    .mode-switch-v2 button {
-      border: 0;
-      border-radius: 8px;
-      padding: 8px 11px;
-      background: transparent;
-      color: var(--ink-soft);
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 650;
-    }
-
-    .mode-switch-v2 button[aria-pressed="true"] {
-      background: white;
-      color: var(--ink);
-      box-shadow: 0 1px 4px rgba(24, 22, 18, 0.10);
-    }
-
-    .preview-v2 {
-      flex: 1;
-      height: auto;
-      min-height: 520px;
-      background: #eeece7;
-    }
-
-    .preview-v2 .preview-stage {
-      padding: 34px 32px 42px;
-    }
-
-    .preview-v2 .paper {
-      width: min(100%, 760px);
-      min-height: 100%;
-      padding: 44px 52px 58px;
-      border: 1px solid rgba(25, 25, 24, 0.06);
-      border-radius: 4px;
-      background: white;
-      box-shadow: 0 10px 30px rgba(38, 34, 27, 0.08);
-    }
-
-    .preview-v2[data-mode="mobile"] .paper,
-    .preview-v2[data-mode="wechat"] .paper {
-      border-radius: 18px;
-    }
-
-    .preview-v2 .empty {
-      min-height: 420px;
-      padding: 44px;
-    }
-
-    .empty-illustration {
-      width: 54px;
-      height: 66px;
-      margin: 0 auto 18px;
-      position: relative;
-      border: 1.5px solid #c9c5bb;
-      border-radius: 6px;
-      background: #fbfaf8;
-    }
-
-    .empty-illustration::before,
-    .empty-illustration::after {
-      content: "";
-      position: absolute;
-      left: 12px;
-      height: 1px;
-      background: #d8d4cb;
-    }
-
-    .empty-illustration::before {
-      top: 20px;
-      width: 28px;
-      box-shadow: 0 9px 0 #d8d4cb, 0 18px 0 #d8d4cb;
-    }
-
-    .empty-illustration::after {
-      top: 47px;
-      width: 17px;
-    }
-
-    .empty strong {
-      margin-bottom: 6px;
-      font-size: 15px;
-      letter-spacing: 0;
-    }
-
-    .empty p {
-      max-width: 300px;
-      margin: 0 auto 18px;
-      color: var(--ink-soft);
-      font-size: 12px;
-      line-height: 1.7;
-    }
-
-    .output-bar {
-      min-height: 72px;
-      padding: 12px 16px 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      border-top: 1px solid var(--hairline);
-      background: rgba(255, 255, 255, 0.98);
-    }
-
-    .output-status strong {
-      display: block;
-      color: var(--ink);
-      font-size: 12px;
-      line-height: 1.3;
-    }
-
-    .output-status span {
-      display: block;
-      margin-top: 3px;
-      color: var(--ink-soft);
-      font-size: 10px;
-      line-height: 1.3;
-    }
-
-    .secondary-btn {
-      padding: 10px 11px;
-      background: var(--surface-subtle);
-      color: var(--ink-soft);
-    }
-
-    .secondary-btn:hover {
-      background: #eeece7;
-      color: var(--ink);
-    }
-
-    .image-action {
-      min-width: 74px;
-    }
-
-    .image-action.is-loading {
-      cursor: wait;
-    }
-
-    .primary-action {
-      min-width: 152px;
-      padding: 13px 16px;
-      background: var(--wechat);
-      color: white;
-      box-shadow: 0 7px 16px rgba(7, 136, 63, 0.18);
-    }
-
-    .primary-action:hover {
-      background: var(--wechat-hover);
-      transform: translateY(-1px);
-    }
-
-    .primary-action:disabled,
-    .secondary-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.38;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .app-footer {
-      min-height: 46px;
-      padding: 0 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      color: var(--ink-soft);
-      font-size: 11px;
-    }
-
-    .document-outline {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .document-outline b {
-      color: var(--ink);
-    }
-
-    .app-footer a {
-      color: var(--ink-soft);
-      text-decoration: none;
-    }
-
-    .toast {
-      position: fixed;
-      z-index: 20;
-      left: 50%;
-      bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      max-width: calc(100vw - 32px);
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #20201e;
-      color: white;
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
-      font-size: 12px;
-      transform: translate(-50%, 18px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 180ms ease, transform 180ms ease;
-    }
-
-    .toast.is-visible {
-      opacity: 1;
-      transform: translate(-50%, 0);
-      pointer-events: auto;
-    }
-
-    .toast button {
-      border: 0;
-      padding: 0;
-      background: transparent;
-      color: #8fe0ad;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    @media (max-width: 1080px) {
-      .app-shell {
-        padding-inline: 16px;
-      }
-
-      .workspace-v2 {
-        grid-template-columns: minmax(330px, 0.9fr) minmax(420px, 1.1fr);
-      }
-
-      .panel-toolbar-v2 {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .preview-v2 .preview-stage {
-        padding: 26px 20px 34px;
-      }
-
-      .preview-v2 .paper {
-        padding: 36px 36px 46px;
-      }
-
-      .output-status {
-        display: none;
-      }
-
-      .output-bar {
-        justify-content: flex-end;
-      }
-    }
-
-    @media (max-width: 800px) {
-      .app-shell {
-        padding: 0 8px 10px;
-      }
-
-      .app-header {
-        height: 62px;
-        padding-inline: 8px;
-      }
-
-      .brand-copy span,
-      .privacy-note span,
-      .workflow {
-        display: none;
-      }
-
-      .mobile-workspace-switch {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 3px;
-        margin: 10px 0;
-        padding: 3px;
-        border-radius: 12px;
-        background: #e8e5de;
-      }
-
-      .mobile-workspace-switch button {
-        border: 0;
-        border-radius: 9px;
-        padding: 10px;
-        background: transparent;
-        color: var(--ink-soft);
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .mobile-workspace-switch button[aria-pressed="true"] {
-        background: white;
-        color: var(--ink);
-        box-shadow: 0 2px 8px rgba(24, 22, 18, 0.08);
-      }
-
-      .workspace-v2 {
-        display: block;
-        min-height: calc(100vh - 130px);
-        border-radius: 16px;
-      }
-
-      .source-panel {
-        border-right: 0;
-      }
-
-      .app-shell[data-workspace-view="edit"] .preview-panel-v2,
-      .app-shell[data-workspace-view="preview"] .source-panel {
-        display: none;
-      }
-
-      .panel-toolbar-v2 {
-        min-height: 78px;
-        padding: 15px 16px;
-        flex-direction: row;
-        align-items: center;
-      }
-
-      .utility-actions {
-        gap: 1px;
-      }
-
-      .source-editor textarea,
-      .preview-v2 {
-        min-height: calc(100vh - 276px);
-      }
-
-      .source-editor textarea {
-        padding: 20px 18px 26px;
-        font-size: 13px;
-      }
-
-      .shortcut-hint {
-        display: none;
-      }
-
-      .preview-toolbar-v2 {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .mode-switch-v2 {
-        width: 100%;
-      }
-
-      .mode-switch-v2 button {
-        flex: 1;
-      }
-
-      .preview-v2 .preview-stage {
-        padding: 14px 10px 22px;
-      }
-
-      .preview-v2 .paper {
-        padding: 28px 22px 38px;
-        font-size: 14px;
-      }
-
-      .output-bar {
-        position: sticky;
-        bottom: 0;
-        z-index: 4;
-        min-height: 68px;
-        padding: 10px;
-      }
-
-      .output-actions-v2 {
-        width: 100%;
-      }
-
-      .secondary-btn {
-        flex: 0 0 auto;
-      }
-
-      .primary-action {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .app-footer {
-        display: none;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .utility-actions .sample-action {
-        display: none;
-      }
-
-      .secondary-btn.export-action {
-        display: none;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="article.css" />
+  <link rel="stylesheet" href="workspace.css" />
 </head>
 <body>
-  <main class="app-shell" id="appShell" data-workspace-view="edit">
+  <main class="app-shell" id="appShell" data-workspace-view="split" data-outline="closed">
     <header class="app-header">
       <div class="app-brand">
-        <div class="mark" aria-label="JACKSON avatar">
-          <img src="avatar.jpg" alt="" />
-        </div>
+        <div class="mark"><img src="avatar.jpg" alt="Jackson 的个人 Logo" /></div>
         <div class="brand-copy">
-          <strong>Jackson Markdown</strong>
-          <span>从草稿到可发布，只差一次复制</span>
+          <strong>Jackson<span class="brand-divider">/</span>Markdown</strong>
+          <span>专注内容，轻松发布</span>
         </div>
       </div>
-      <div class="privacy-note" title="内容不会上传到服务器">
-        <span>内容仅在本页处理</span>
+      <div class="header-actions">
+        <span class="privacy-note">本地草稿 · 不上传正文</span>
+        <button class="quiet-btn" id="btnHelp" type="button" aria-haspopup="dialog">使用指南 <span class="keycap">?</span></button>
       </div>
     </header>
+    <section class="document-bar" aria-label="文档与发布操作">
+      <div class="document-info">
+        <span class="document-symbol" aria-hidden="true">M↓</span>
+        <div>
+          <label class="sr-only" for="documentTitle">文档名称</label>
+          <input id="documentTitle" type="text" value="未命名文档" maxlength="80" aria-label="文档名称" />
+          <span class="save-state" id="saveState" role="status">就从一段文字开始</span>
+        </div>
+      </div>
+      <div class="publish-actions">
+        <details class="export-menu" id="exportMenu">
+          <summary>导出 <span aria-hidden="true">⌄</span></summary>
+          <div class="menu-panel">
+            <span class="menu-label">带走你的内容</span>
+            <button id="btnExportImage" type="button"><span>PNG 长图</span><small>按照当前预览模式</small></button>
+            <button id="btnExport" type="button"><span>HTML 网页</span><small>保留完整文章排版</small></button>
+            <button id="btnDownloadMd" type="button"><span>Markdown 文件</span><small>保存可编辑的原稿</small></button>
+            <button id="btnCopy" type="button"><span>复制 Markdown</span><small>复制原始文本</small></button>
+          </div>
+        </details>
+        <button class="primary-action" id="btnCopyWeChat" type="button"><span aria-hidden="true">↗</span> 复制公众号排版</button>
+      </div>
+    </section>
 
-    <nav class="workflow" aria-label="发布流程">
-      <div class="workflow-step is-active"><span class="step-number">1</span><span>贴入内容</span></div>
-      <div class="workflow-step"><span class="step-number">2</span><span>确认排版</span></div>
-      <div class="workflow-step"><span class="step-number">3</span><span>复制发布</span></div>
-    </nav>
-
-    <div class="mobile-workspace-switch" role="group" aria-label="工作区切换">
-      <button type="button" id="mobileEdit" aria-pressed="true">编辑</button>
-      <button type="button" id="mobilePreview" aria-pressed="false">预览与复制</button>
+    <div class="workspace-control">
+      <div class="workspace-left-actions">
+        <button class="quiet-btn outline-toggle" id="btnOutline" type="button" aria-expanded="false" aria-controls="outlinePanel"><span aria-hidden="true">☷</span> 大纲</button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <span class="workspace-description">写作工作台</span>
+      </div>
+      <div class="view-switch" role="group" aria-label="工作区视图">
+        <button type="button" id="mobileEdit" aria-pressed="false">编辑</button>
+        <button type="button" id="viewSplit" aria-pressed="true">双栏</button>
+        <button type="button" id="mobilePreview" aria-pressed="false">预览</button>
+      </div>
+      <button class="quiet-btn sync-toggle" id="btnSync" type="button" aria-pressed="false"><span aria-hidden="true">↕</span> 同步滚动</button>
     </div>
 
-    <section class="workspace-v2">
+    <section class="workspace-v2" aria-label="写作工作台">
+      <aside class="outline-panel" id="outlinePanel" aria-label="文章大纲" hidden>
+        <div class="outline-heading"><strong>文章大纲</strong><button class="icon-btn" id="btnCloseOutline" aria-label="关闭大纲" type="button">×</button></div>
+        <p class="outline-hint">点击标题，定位到对应段落。</p>
+        <nav id="outlineList" aria-label="段落导航"></nav>
+        <div class="outline-footer">让结构先于细节。</div>
+      </aside>
+      <div class="writing-panels">
       <section class="work-panel source-panel" aria-label="Markdown 编辑区">
         <header class="panel-toolbar-v2">
-          <div>
-            <span class="eyebrow">01 · Source</span>
-            <h1 class="panel-title-v2">贴入你的 Markdown</h1>
-          </div>
+          <h1 class="panel-title-v2"><span class="panel-dot" aria-hidden="true"></span>Markdown 原稿</h1>
           <div class="utility-actions">
-            <button class="quiet-btn" id="btnImport" type="button">导入文件</button>
-            <button class="quiet-btn sample-action" id="btnSample" type="button">使用示例</button>
-            <button class="quiet-btn" id="btnImage" type="button">插入图片</button>
-            <button class="quiet-btn" id="btnClear" type="button">清空</button>
+            <button class="quiet-btn" id="btnImport" type="button">导入</button>
+            <details class="document-menu" id="documentMenu"><summary aria-label="更多文档操作">···</summary><div class="menu-panel">
+              <button id="btnSample" type="button">载入示例</button>
+              <button id="btnClear" class="danger-action" type="button">清空文档</button>
+            </div></details>
           </div>
         </header>
+        <div class="format-toolbar" role="toolbar" aria-label="编辑工具">
+          <button type="button" data-format="heading" title="二级标题" aria-label="插入二级标题">H<span>2</span></button>
+          <button type="button" data-format="bold" title="粗体 · Ctrl/⌘ B" aria-label="加粗"><b>B</b></button>
+          <button type="button" data-format="italic" title="斜体 · Ctrl/⌘ I" aria-label="斜体"><i>I</i></button>
+          <span class="toolbar-divider" aria-hidden="true"></span>
+          <button type="button" data-format="quote" title="引用" aria-label="插入引用">❞</button>
+          <button type="button" data-format="list" title="列表" aria-label="插入列表">≡</button>
+          <button type="button" data-format="link" title="链接 · Ctrl/⌘ K" aria-label="插入链接">↗</button>
+          <button type="button" data-format="code" title="代码块" aria-label="插入代码块">&lt;/&gt;</button>
+          <span class="toolbar-divider" aria-hidden="true"></span>
+          <button id="btnImage" type="button" title="插入本地图片" aria-label="插入图片">▧</button>
+          <span class="format-hint">Markdown</span>
+        </div>
         <div class="source-editor">
           <label class="sr-only" for="markdownInput">Markdown 输入</label>
-          <textarea id="markdownInput" spellcheck="false" placeholder="把 Markdown 粘贴到这里…
-
-支持标题、列表、引用、代码块、表格、链接和图片。"></textarea>
+          <textarea id="markdownInput" spellcheck="false" placeholder="写下你的第一行…" aria-describedby="editorHint"></textarea>
+          <div class="editor-welcome" id="editorWelcome">
+            <span class="welcome-kicker">YOUR NEXT GOOD IDEA</span>
+            <h2>内容，从这里开始。</h2>
+            <p>贴入 Markdown，即刻得到可发布的排版。<br />也可以从一张白纸开始写。</p>
+            <div class="welcome-actions"><button class="secondary-btn" id="btnStart" type="button">开始写作 <span aria-hidden="true">↗</span></button><button class="text-btn" id="btnWelcomeSample" type="button">试试示例</button></div>
+            <span class="paste-hint" id="editorHint">直接粘贴 <kbd id="pasteShortcut">⌘ V</kbd>，或拖入 .md / .txt 文件</span>
+          </div>
+          <div class="drop-overlay" id="dropOverlay" aria-hidden="true">松开，导入你的内容</div>
         </div>
         <footer class="source-footer">
           <span class="doc-stats" id="docStats">0 字 · 0 行</span>
-          <span class="shortcut-hint"><kbd>⌘</kbd> <kbd>Enter</kbd> 复制公众号排版</span>
+          <span id="readingTime">开始写作</span>
         </footer>
       </section>
 
       <section class="work-panel preview-panel-v2" aria-label="Markdown 预览区">
         <header class="panel-toolbar-v2 preview-toolbar-v2">
-          <div>
-            <span class="eyebrow">02 · Preview</span>
-            <h2 class="panel-title-v2">确认发布效果</h2>
-          </div>
+          <h2 class="panel-title-v2"><span class="panel-dot green" aria-hidden="true"></span>实时预览</h2>
           <div class="mode-switch-v2" role="group" aria-label="预览模式">
             <button type="button" id="modeDesktop" aria-pressed="true">网页</button>
             <button type="button" id="modeMobile" aria-pressed="false">手机</button>
             <button type="button" id="modeWeChat" aria-pressed="false">公众号</button>
           </div>
         </header>
+        <div class="preview-caption"><span id="previewModeHint">网页阅读效果</span><span id="previewWidthHint">宽屏</span></div>
         <div class="preview preview-v2" id="preview" data-mode="desktop">
           <div class="preview-stage">
-            <article class="paper" id="previewContent" aria-live="polite"></article>
+            <article class="paper" id="previewContent" aria-label="文章预览"></article>
           </div>
         </div>
         <footer class="output-bar">
           <div class="output-status">
-            <strong>公众号排版已就绪</strong>
-            <span>复制后直接粘贴到微信编辑器</span>
+            <strong>随写随看</strong>
+            <span>内容变化会自动更新预览</span>
           </div>
-          <div class="output-actions-v2">
-            <button class="secondary-btn" id="btnCopy" type="button">复制 Markdown</button>
-            <button class="secondary-btn export-action" id="btnExport" type="button">导出 HTML</button>
-            <button class="secondary-btn image-action" id="btnExportImage" type="button">导出图片</button>
-            <button class="primary-action" id="btnCopyWeChat" type="button">复制公众号排版</button>
-          </div>
+          <button class="text-btn" id="btnBackTop" type="button" aria-label="预览回到顶部">回到顶部 ↑</button>
         </footer>
       </section>
+      </div>
     </section>
 
     <footer class="app-footer">
@@ -1500,9 +143,12 @@
         <span><b id="paragraphCount">0</b> 段正文</span>
         <span><b id="codeCount">0</b> 个代码块</span>
       </div>
+      <span class="footer-tip">给内容一个舒服的阅读空间。</span>
       <a href="https://kimwing.cn" target="_blank" rel="noreferrer noopener">@Jackson</a>
     </footer>
   </main>
+
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle"><div class="dialog-heading"><span class="welcome-kicker">A SMALL GUIDE</span><button type="button" class="icon-btn" id="btnCloseHelp" aria-label="关闭使用指南">×</button></div><h2 id="helpTitle">从想法，到发布。</h2><ol><li><strong>贴入或写作</strong><p>直接粘贴 Markdown，拖入文件，或用工具栏补充格式。草稿自动保存在当前浏览器。</p></li><li><strong>确认阅读效果</strong><p>切换网页、手机、公众号视图。长文章可以通过大纲定位，也能开启同步滚动。</p></li><li><strong>带走你的文章</strong><p>复制公众号排版后粘贴到微信编辑器，或导出 PNG 长图、HTML 和 Markdown 文件。</p></li></ol><div class="shortcut-guide"><span>粗体 <kbd>⌘ / Ctrl B</kbd></span><span>复制公众号 <kbd>⌘ / Ctrl Enter</kbd></span><span>保存原稿 <kbd>⌘ / Ctrl S</kbd></span></div><p class="help-note">草稿只保存在本机浏览器。无痕模式、浏览器清理或超出存储容量时，请下载原稿留存。</p></dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite">
     <span id="toastMessage"></span>
@@ -1548,14 +194,14 @@ function formatMarkdown(text) {
 如果你把一段原始文档贴进来，它会尽量保持内容本身，同时帮你把排版、字体和留白做得更稳重。
   </template>
 
-  <input id="mdFileInput" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr-only" />
-  <input id="imageFileInput" type="file" accept="image/*" class="sr-only" />
+  <input id="mdFileInput" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr-only" tabindex="-1" aria-hidden="true" />
+  <input id="imageFileInput" type="file" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true" />
 
   <script>
     const input = document.getElementById('markdownInput');
     const previewPanel = document.getElementById('preview');
     const preview = document.getElementById('previewContent');
-    const sample = document.getElementById('tplSample').textContent.trim();
+    const sample = document.getElementById('tplSample').content.textContent.trim();
     const docStats = document.getElementById('docStats');
     const headingCount = document.getElementById('headingCount');
     const paragraphCount = document.getElementById('paragraphCount');
@@ -1568,6 +214,19 @@ function formatMarkdown(text) {
     const btnCopy = document.getElementById('btnCopy');
     const btnExport = document.getElementById('btnExport');
     const btnExportImage = document.getElementById('btnExportImage');
+    const btnDownloadMd = document.getElementById('btnDownloadMd');
+    const documentTitle = document.getElementById('documentTitle');
+    const saveState = document.getElementById('saveState');
+    const editorWelcome = document.getElementById('editorWelcome');
+    const sourceEditor = document.querySelector('.source-editor');
+    const exportMenu = document.getElementById('exportMenu');
+    const documentMenu = document.getElementById('documentMenu');
+    const outlinePanel = document.getElementById('outlinePanel');
+    const outlineList = document.getElementById('outlineList');
+    const btnOutline = document.getElementById('btnOutline');
+    const btnSync = document.getElementById('btnSync');
+    const viewSplit = document.getElementById('viewSplit');
+    const helpDialog = document.getElementById('helpDialog');
     const mdFileInput = document.getElementById('mdFileInput');
     const imageFileInput = document.getElementById('imageFileInput');
     const modeDesktop = document.getElementById('modeDesktop');
@@ -1578,12 +237,22 @@ function formatMarkdown(text) {
     const btnCopyWeChat = document.getElementById('btnCopyWeChat');
     const outputStatusTitle = document.querySelector('.output-status strong');
     const outputStatusHint = document.querySelector('.output-status span');
-    const workflowSteps = [...document.querySelectorAll('.workflow-step')];
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
     const toastAction = document.getElementById('toastAction');
     let currentPreviewMode = 'desktop';
     let isExportingImage = false;
+    let isCopying = false;
+    let syncEnabled = false;
+    let scrollLock = false;
+    let composing = false;
+    let renderFrame = null;
+    let saveTimer = null;
+    let draftSaved = false;
+    let welcomeDismissed = false;
+    let lastRenderedSource = null;
+    let headingElements = [];
+    const DRAFT_KEY = 'jackson-markdown-draft-v2';
     let toastTimer = null;
 
     const escapeHtml = (value) => value
@@ -1599,7 +268,7 @@ function formatMarkdown(text) {
       .replace(/[\s\W-]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    function showToast(message, actionLabel = '', action = null) {
+    function showToast(message, actionLabel = '', action = null, duration = 4500) {
       clearTimeout(toastTimer);
       toastMessage.textContent = message;
       toastAction.hidden = !actionLabel;
@@ -1609,21 +278,180 @@ function formatMarkdown(text) {
         toast.classList.remove('is-visible');
       } : null;
       toast.classList.add('is-visible');
-      toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2600);
+      toastTimer = setTimeout(() => toast.classList.remove('is-visible'), action ? 10000 : duration);
     }
 
     function setWorkflowStage(stage) {
-      workflowSteps.forEach((step, index) => {
-        const stepNumber = index + 1;
-        step.classList.toggle('is-active', stepNumber === stage);
-        step.classList.toggle('is-complete', stepNumber < stage);
-      });
+      if (stage === 3) {
+        outputStatusTitle.textContent = '已准备好发布';
+        outputStatusHint.textContent = '继续编辑，或带走当前文章';
+      }
     }
 
-    function setWorkspaceView(view) {
+    function setWorkspaceView(view, focusEditor = false) {
       appShell.dataset.workspaceView = view;
       mobileEdit.setAttribute('aria-pressed', String(view === 'edit'));
       mobilePreview.setAttribute('aria-pressed', String(view === 'preview'));
+      viewSplit.setAttribute('aria-pressed', String(view === 'split'));
+      btnSync.disabled = view !== 'split';
+      if (focusEditor && view === 'edit') input.focus();
+    }
+
+    function refreshWelcome() {
+      editorWelcome.hidden = Boolean(input.value) || welcomeDismissed;
+    }
+
+    function saveDraft() {
+      clearTimeout(saveTimer);
+      try {
+        const draft = { content: input.value, title: documentTitle.value, mode: currentPreviewMode, savedAt: Date.now() };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        draftSaved = true;
+        saveState.classList.remove('has-error');
+        saveState.textContent = input.value ? '已保存到当前浏览器' : '就从一段文字开始';
+      } catch (error) {
+        draftSaved = false;
+        saveState.classList.add('has-error');
+        saveState.textContent = '草稿未保存，请下载原稿留存';
+      }
+    }
+
+    function queueDraftSave() {
+      draftSaved = false;
+      saveState.classList.remove('has-error');
+      saveState.textContent = '正在保存…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveDraft, 450);
+    }
+
+    function restoreDraft() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+        if (saved && typeof saved.content === 'string') {
+          input.value = saved.content;
+          documentTitle.value = typeof saved.title === 'string' && saved.title.trim() ? saved.title.slice(0,80) : '未命名文档';
+          setPreviewMode(['desktop','mobile','wechat'].includes(saved.mode) ? saved.mode : 'desktop');
+          saveState.textContent = input.value ? '已恢复上次的本地草稿' : '就从一段文字开始';
+          draftSaved = true;
+        }
+      } catch (error) {
+        saveState.classList.add('has-error');
+        saveState.textContent = '本地草稿不可用，请下载原稿留存';
+      }
+    }
+
+    function schedulePreview() {
+      refreshWelcome();
+      if (composing) return;
+      if (renderFrame) cancelAnimationFrame(renderFrame);
+      renderFrame = requestAnimationFrame(() => {
+        renderFrame = null;
+        updatePreview();
+        queueDraftSave();
+      });
+    }
+
+    function replaceDocument(content, title, message) {
+      const previous = { content: input.value, title: documentTitle.value };
+      input.value = content;
+      input.scrollTop = 0;
+      previewPanel.scrollTop = 0;
+      if (title) documentTitle.value = title;
+      welcomeDismissed = false;
+      updatePreview();
+      saveDraft();
+      showToast(message, previous.content ? '撤销替换' : '', previous.content ? () => {
+        input.value = previous.content;
+        documentTitle.value = previous.title;
+        updatePreview();
+        saveDraft();
+      } : null);
+    }
+
+    function rebuildOutline() {
+      headingElements = [...preview.querySelectorAll('h1,h2,h3,h4,h5,h6')];
+      outlineList.replaceChildren();
+      if (!headingElements.length) {
+        const hint = document.createElement('p');
+        hint.className = 'outline-empty';
+        hint.textContent = '用 #、## 或 ### 写下标题，文章结构会显示在这里。';
+        outlineList.appendChild(hint);
+        return;
+      }
+      const lines = input.value.split('\n');
+      const sourceHeadings = [];
+      let offset = 0;
+      let inCode = false;
+      for (const line of lines) {
+        if (line.trim().startsWith('```')) inCode = !inCode;
+        else if (!inCode && /^(#{1,6})\s+/.test(line.trim())) sourceHeadings.push(offset);
+        offset += line.length + 1;
+      }
+      headingElements.forEach((heading, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.level = String(Math.min(3, Number(heading.tagName.slice(1))));
+        button.textContent = heading.textContent;
+        button.title = heading.textContent;
+        button.addEventListener('click', () => {
+          if (appShell.dataset.workspaceView === 'edit') {
+            input.focus();
+            input.setSelectionRange(sourceHeadings[index] || 0, sourceHeadings[index] || 0);
+            const progress = (sourceHeadings[index] || 0) / Math.max(1, input.value.length);
+            input.scrollTop = progress * Math.max(0,input.scrollHeight-input.clientHeight);
+          } else {
+            previewPanel.scrollTo({ top: heading.getBoundingClientRect().top - previewPanel.getBoundingClientRect().top + previewPanel.scrollTop - 24, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+          }
+          [...outlineList.children].forEach(item => item.classList.toggle('is-current', item === button));
+          if (window.matchMedia('(max-width:760px)').matches) toggleOutline(false);
+        });
+        outlineList.appendChild(button);
+      });
+    }
+
+    function toggleOutline(open = outlinePanel.hidden) {
+      outlinePanel.hidden = !open;
+      btnOutline.setAttribute('aria-expanded', String(open));
+      appShell.dataset.outline = open ? 'open' : 'closed';
+    }
+
+    function insertFormatting(format) {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const selected = input.value.slice(start,end);
+      const formats = {
+        heading: { before:'## ', after:'', placeholder:'小标题', block:true },
+        bold: { before:'**', after:'**', placeholder:'重点文字' },
+        italic: { before:'*', after:'*', placeholder:'强调文字' },
+        quote: { before:'> ', after:'', placeholder:'引用内容', block:true },
+        list: { before:'- ', after:'', placeholder:'列表内容', block:true },
+        link: { before:'[', after:'](https://example.com)', placeholder:'链接文字' },
+        code: { before:'```\n', after:'\n```', placeholder:'代码内容', block:true }
+      };
+      const config = formats[format];
+      if (!config) return;
+      const prefix = config.block && start > 0 && input.value[start-1] !== '\n' ? '\n' : '';
+      const content = selected || config.placeholder;
+      const suffix = config.block && end < input.value.length && input.value[end] !== '\n' ? '\n' : '';
+      const snippet = prefix + config.before + content + config.after + suffix;
+      input.focus();
+      input.setSelectionRange(start,end);
+      if (!document.execCommand('insertText',false,snippet)) input.setRangeText(snippet,start,end,'end');
+      input.setSelectionRange(start+prefix.length+config.before.length,start+prefix.length+config.before.length+content.length);
+      welcomeDismissed = true;
+      updatePreview();
+      queueDraftSave();
+    }
+
+    function fileBasename() {
+      return (documentTitle.value.trim() || '未命名文档').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'-').slice(0,80);
+    }
+
+    function downloadMarkdown() {
+      if (!input.value.trim()) return;
+      downloadBlob(new Blob([input.value], {type:'text/markdown;charset=utf-8'}), `${fileBasename()}.md`);
+      exportMenu.open = false;
+      showToast('Markdown 原稿已下载');
     }
 
     function renderInline(text) {
@@ -1671,6 +499,9 @@ function formatMarkdown(text) {
       modeDesktop.setAttribute('aria-pressed', String(mode === 'desktop'));
       modeMobile.setAttribute('aria-pressed', String(mode === 'mobile'));
       modeWeChat.setAttribute('aria-pressed', String(mode === 'wechat'));
+      const descriptions = { desktop: ['网页阅读效果','宽屏'], mobile: ['手机阅读效果','390 px'], wechat: ['公众号阅读效果','375 px'] };
+      document.getElementById('previewModeHint').textContent = descriptions[mode][0];
+      document.getElementById('previewWidthHint').textContent = descriptions[mode][1];
     }
 
     function applyWeChatStyles(html) {
@@ -1872,9 +703,9 @@ function formatMarkdown(text) {
           <div class="empty">
             <div>
               <div class="empty-illustration" aria-hidden="true"></div>
-              <strong>排版会在这里出现</strong>
-              <p>先在左侧粘贴 Markdown，内容会立即转换，不会离开当前页面。</p>
-              <button class="secondary-btn" type="button" data-use-sample>看看示例效果</button>
+              <strong>你的文字，值得被好好阅读。</strong>
+              <p>贴入或写下内容，这里将呈现<br />文章的完整阅读效果。</p>
+              <span class="empty-tag">A SPACE FOR YOUR WORDS</span>
             </div>
           </div>
         `;
@@ -1886,12 +717,20 @@ function formatMarkdown(text) {
     function updatePreview() {
       const value = input.value.trim();
       const { html, stats } = renderMarkdown(value);
-      preview.innerHTML = html;
+      if (input.value !== lastRenderedSource) {
+        const scrollTop = previewPanel.scrollTop;
+        preview.innerHTML = html;
+        previewPanel.scrollTop = scrollTop;
+        lastRenderedSource = input.value;
+        rebuildOutline();
+      }
       previewPanel.dataset.mode = currentPreviewMode;
 
-      const chars = value.replace(/\s/g, '').length;
+      const visibleText = value.replace(/!\[[^\]]*\]\([^)]+\)/g,'');
+      const chars = visibleText.replace(/\s/g, '').length;
       const lines = value ? value.split('\n').length : 0;
       docStats.textContent = `${chars} 字 · ${lines} 行`;
+      document.getElementById('readingTime').textContent = chars ? `阅读约 ${Math.max(1,Math.ceil(chars/350))} 分钟` : '开始写作';
       headingCount.textContent = `${stats.headings}`;
       paragraphCount.textContent = `${stats.paragraphs}`;
       codeCount.textContent = `${stats.codes}`;
@@ -1899,15 +738,13 @@ function formatMarkdown(text) {
       const hasContent = Boolean(value);
       btnCopy.disabled = !hasContent;
       btnExport.disabled = !hasContent;
+      btnDownloadMd.disabled = !hasContent;
       btnExportImage.disabled = !hasContent || isExportingImage;
-      btnCopyWeChat.disabled = !hasContent;
+      btnCopyWeChat.disabled = !hasContent || isCopying;
       btnClear.disabled = !hasContent;
-      outputStatusTitle.textContent = hasContent ? '公众号排版已就绪' : '等待贴入内容';
-      outputStatusHint.textContent = hasContent ? '复制后直接粘贴到微信编辑器' : '内容会在本页即时转换';
-      setWorkflowStage(hasContent ? 2 : 1);
-
-      const emptySampleButton = preview.querySelector('[data-use-sample]');
-      if (emptySampleButton) emptySampleButton.addEventListener('click', useSample);
+      outputStatusTitle.textContent = hasContent ? '预览已更新' : '随写随看';
+      outputStatusHint.textContent = hasContent ? '上方可复制排版或导出文章' : '内容变化会自动更新预览';
+      refreshWelcome();
     }
 
     async function copyRichHtmlToClipboard(html, plainText) {
@@ -1931,6 +768,9 @@ function formatMarkdown(text) {
       document.body.appendChild(helper);
 
       const selection = window.getSelection();
+      const focusedElement = document.activeElement;
+      const previousRanges = Array.from({ length: selection.rangeCount }, (_, index) => selection.getRangeAt(index).cloneRange());
+      const cursor = { start: input.selectionStart, end: input.selectionEnd, scroll: input.scrollTop };
       const range = document.createRange();
       range.selectNodeContents(helper);
       selection.removeAllRanges();
@@ -1945,6 +785,10 @@ function formatMarkdown(text) {
 
       selection.removeAllRanges();
       helper.remove();
+      previousRanges.forEach(previousRange => selection.addRange(previousRange));
+      focusedElement?.focus({ preventScroll: true });
+      input.setSelectionRange(cursor.start, cursor.end);
+      input.scrollTop = cursor.scroll;
       return copied;
     }
 
@@ -2084,45 +928,44 @@ ${buildExportStyles()}
 </html>`;
     }
 
-    function copyMarkdown() {
+    async function copyMarkdown() {
       const text = input.value;
       if (!text.trim()) return;
-      const done = () => showToast('Markdown 已复制');
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done).catch(() => {
-          input.focus();
-          input.select();
-          document.execCommand('copy');
-          done();
-        });
-        return;
+      exportMenu.open = false;
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(text);
+        showToast('Markdown 已复制');
+      } catch (error) {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const focused = document.activeElement;
+        input.focus();
+        input.select();
+        const copied = document.execCommand('copy');
+        input.setSelectionRange(start,end);
+        focused?.focus();
+        showToast(copied ? 'Markdown 已复制' : '复制失败，请手动选中文字复制');
       }
-
-      input.focus();
-      input.select();
-      document.execCommand('copy');
-      done();
     }
 
     function importMarkdownFile(file) {
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        input.value = String(reader.result || '');
-        updatePreview();
-        setPreviewMode('desktop');
-        showToast(`已导入 ${file.name}`);
+        replaceDocument(String(reader.result || ''),file.name.replace(/\.(md|markdown|txt)$/i,''),`已导入 ${file.name}`);
       };
+      reader.onerror = () => showToast('文件读取失败，请重新选择');
+      if (file.size > 10 * 1024 * 1024) return showToast('文件大于 10 MB，请分段导入');
       reader.readAsText(file);
     }
 
     function useSample() {
-      input.value = sample;
-      updatePreview();
+      documentMenu.open = false;
+      replaceDocument(sample, '一页很舒服的 Markdown', '示例已载入，可以直接修改');
       input.focus();
       input.setSelectionRange(0, 0);
-      showToast('示例已载入，可以直接修改');
+      input.scrollTop = 0;
     }
 
     function insertImageAtCursor(markdownImageSyntax) {
@@ -2139,6 +982,7 @@ ${buildExportStyles()}
       input.setSelectionRange(caret, caret);
       input.focus();
       updatePreview();
+      queueDraftSave();
     }
 
     function openImagePicker() {
@@ -2149,17 +993,23 @@ ${buildExportStyles()}
       mdFileInput.click();
     }
 
+    async function insertImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      if (file.size > 8 * 1024 * 1024) return showToast('图片大于 8 MB，请压缩后插入');
+      try {
+        const dataUrl = await readBlobAsDataUrl(file);
+        const alt = file.name.replace(/\.[^.]+$/, '').replace(/[\[\]]/g,'');
+        insertImageAtCursor(`![${alt}](${dataUrl})`);
+        showToast('图片已插入');
+      } catch (error) {
+        showToast('图片读取失败，请重新选择');
+      }
+    }
+
     imageFileInput.addEventListener('change', async () => {
       const file = imageFileInput.files && imageFileInput.files[0];
       if (!file) return;
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      const alt = file.name.replace(/\.[^.]+$/, '');
-      insertImageAtCursor(`![${alt}](${dataUrl})`);
+      await insertImageFile(file);
       imageFileInput.value = '';
     });
 
@@ -2172,12 +1022,21 @@ ${buildExportStyles()}
 
     async function copyToWeChat() {
       const source = input.value.trim();
-      if (!source) return;
+      if (!source || isCopying) return;
+      isCopying = true;
+      btnCopyWeChat.disabled = true;
+      btnCopyWeChat.textContent = '复制中…';
       const { html } = renderMarkdown(source);
       const wechatHtml = applyWeChatStyles(html);
-      const copied = await copyRichHtmlToClipboard(wechatHtml, source);
+      let copied = false;
+      try { copied = await copyRichHtmlToClipboard(wechatHtml, source); }
+      catch (error) { copied = false; }
+      finally {
+        isCopying = false;
+        btnCopyWeChat.innerHTML = '<span aria-hidden="true">↗</span> 复制公众号排版';
+        btnCopyWeChat.disabled = !input.value.trim();
+      }
       if (copied) {
-        setPreviewMode('wechat');
         setWorkflowStage(3);
         showToast('公众号排版已复制，可直接粘贴发布');
       } else {
@@ -2191,12 +1050,8 @@ ${buildExportStyles()}
       const payload = renderMarkdown(source).html;
       const wrapped = buildExportDocument(payload);
       const blob = new Blob([wrapped], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'markdown-preview.html';
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${fileBasename()}.html`);
+      exportMenu.open = false;
       showToast('HTML 文件已导出');
     }
 
@@ -2323,6 +1178,8 @@ ${buildExportStyles()}
       btnExportImage.disabled = true;
       btnExportImage.classList.add('is-loading');
       btnExportImage.textContent = '生成中…';
+      exportMenu.open = false;
+      showToast('正在生成完整长图…', '', null, 12000);
 
       const exportMode = currentPreviewMode;
       const modeWidths = { desktop: 824, mobile: 422, wechat: 407 };
@@ -2335,6 +1192,9 @@ ${buildExportStyles()}
       renderStage.innerHTML = '<div class="preview-stage"><article class="paper"></article></div>';
       const renderedPaper = renderStage.querySelector('.paper');
       renderedPaper.innerHTML = preview.innerHTML;
+      const fixedWidth = { desktop:760, mobile:390, wechat:375 }[exportMode];
+      renderedPaper.style.cssText = `width:${fixedWidth}px;max-width:none;min-height:0;padding:${getComputedStyle(preview).padding};`;
+      renderStage.querySelector('.preview-stage').style.padding = '0';
       document.body.appendChild(renderStage);
 
       let svgUrl = '';
@@ -2396,7 +1256,7 @@ ${buildExportStyles()}
 
         const png = await canvasToPng(canvas);
         const date = new Date().toLocaleDateString('sv-SE');
-        downloadBlob(png, `markdown-${exportMode}-${date}.png`);
+        downloadBlob(png, `${fileBasename()}-${exportMode}-${date}.png`);
         setWorkflowStage(3);
         showToast(omittedImages ? `图片已导出，${omittedImages} 张网络图片未能载入` : 'PNG 长图已导出');
       } catch (error) {
@@ -2407,7 +1267,7 @@ ${buildExportStyles()}
         renderStage.remove();
         isExportingImage = false;
         btnExportImage.classList.remove('is-loading');
-        btnExportImage.textContent = '导出图片';
+        btnExportImage.innerHTML = '<span>PNG 长图</span><small>按照当前预览模式</small>';
         btnExportImage.disabled = !input.value.trim();
       }
     }
@@ -2420,11 +1280,14 @@ ${buildExportStyles()}
       const clearedValue = input.value;
       if (!clearedValue) return;
       input.value = '';
+      documentMenu.open = false;
+      welcomeDismissed = false;
       updatePreview();
-      input.focus();
+      saveDraft();
       showToast('内容已清空', '撤销', () => {
         input.value = clearedValue;
         updatePreview();
+        saveDraft();
         input.focus();
       });
     });
@@ -2433,37 +1296,124 @@ ${buildExportStyles()}
     btnCopyWeChat.addEventListener('click', copyToWeChat);
     btnExport.addEventListener('click', exportHtml);
     btnExportImage.addEventListener('click', exportImage);
-    input.addEventListener('input', updatePreview);
-    input.addEventListener('paste', () => {
-      requestAnimationFrame(() => {
-        updatePreview();
-        showToast('内容已贴入，右侧排版已更新');
-      });
+    btnDownloadMd.addEventListener('click', downloadMarkdown);
+    documentTitle.addEventListener('input', queueDraftSave);
+    documentTitle.addEventListener('blur', () => {
+      if (!documentTitle.value.trim()) documentTitle.value = '未命名文档';
+      saveDraft();
+    });
+    document.getElementById('btnStart').addEventListener('click', () => {
+      welcomeDismissed = true;
+      refreshWelcome();
+      input.focus();
+    });
+    document.getElementById('btnWelcomeSample').addEventListener('click', useSample);
+    input.addEventListener('input', schedulePreview);
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', () => { composing = false; schedulePreview(); });
+    input.addEventListener('focus', () => {
+      welcomeDismissed = true;
+      refreshWelcome();
+    });
+    input.addEventListener('paste', (event) => {
+      const image = [...(event.clipboardData?.files || [])].find(file => file.type.startsWith('image/'));
+      if (image) {
+        event.preventDefault();
+        insertImageFile(image);
+      }
     });
     input.addEventListener('keydown', (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      if (composing) return;
+      const modified = event.metaKey || event.ctrlKey;
+      if (modified && event.key === 'Enter') {
         event.preventDefault();
         copyToWeChat();
       }
+      const formatKeys = { b:'bold', i:'italic', k:'link' };
+      if (modified && formatKeys[event.key.toLowerCase()]) {
+        event.preventDefault();
+        insertFormatting(formatKeys[event.key.toLowerCase()]);
+      }
     });
-    modeDesktop.addEventListener('click', () => {
-      setPreviewMode('desktop');
-      updatePreview();
+    document.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveDraft();
+        downloadMarkdown();
+      }
+      if (event.key === 'Escape') {
+        exportMenu.open = false;
+        documentMenu.open = false;
+        if (!outlinePanel.hidden) { toggleOutline(false); btnOutline.focus(); }
+      }
     });
-    modeMobile.addEventListener('click', () => {
-      setPreviewMode('mobile');
-      updatePreview();
+    for (const [button,mode] of [[modeDesktop,'desktop'],[modeMobile,'mobile'],[modeWeChat,'wechat']]) {
+      button.addEventListener('click', () => {
+        setPreviewMode(mode);
+        saveDraft();
+      });
+    }
+    document.querySelectorAll('[data-format]').forEach(button => {
+      button.addEventListener('mousedown', event => event.preventDefault());
+      button.addEventListener('click', () => insertFormatting(button.dataset.format));
     });
-    modeWeChat.addEventListener('click', () => {
-      setPreviewMode('wechat');
-      updatePreview();
+    btnImage.addEventListener('mousedown', event => event.preventDefault());
+    btnOutline.addEventListener('click', () => toggleOutline());
+    document.getElementById('btnCloseOutline').addEventListener('click', () => { toggleOutline(false); btnOutline.focus(); });
+    btnSync.addEventListener('click', () => {
+      syncEnabled = !syncEnabled;
+      btnSync.setAttribute('aria-pressed',String(syncEnabled));
     });
-    mobileEdit.addEventListener('click', () => setWorkspaceView('edit'));
+    function synchronizeScroll(source,target) {
+      if (!syncEnabled || scrollLock || appShell.dataset.workspaceView !== 'split') return;
+      scrollLock = true;
+      const fraction = source.scrollTop / Math.max(1,source.scrollHeight-source.clientHeight);
+      target.scrollTop = fraction * Math.max(0,target.scrollHeight-target.clientHeight);
+      requestAnimationFrame(() => { scrollLock = false; });
+    }
+    input.addEventListener('scroll', () => synchronizeScroll(input,previewPanel), {passive:true});
+    previewPanel.addEventListener('scroll', () => synchronizeScroll(previewPanel,input), {passive:true});
+    document.getElementById('btnBackTop').addEventListener('click', () => previewPanel.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}));
+    let dragDepth = 0;
+    sourceEditor.addEventListener('dragenter', event => {
+      if (event.dataTransfer?.types.includes('Files')) {
+        event.preventDefault(); dragDepth += 1; sourceEditor.classList.add('is-dragging');
+      }
+    });
+    sourceEditor.addEventListener('dragover', event => { if (event.dataTransfer?.types.includes('Files')) event.preventDefault(); });
+    sourceEditor.addEventListener('dragleave', () => { dragDepth = Math.max(0,dragDepth-1); if (!dragDepth) sourceEditor.classList.remove('is-dragging'); });
+    sourceEditor.addEventListener('drop', event => {
+      event.preventDefault(); dragDepth = 0; sourceEditor.classList.remove('is-dragging');
+      const file = event.dataTransfer?.files[0];
+      if (!file) return;
+      if (file.type.startsWith('image/')) insertImageFile(file);
+      else if (/\.(md|markdown|txt)$/i.test(file.name)) importMarkdownFile(file);
+      else showToast('支持 Markdown、TXT 或图片文件');
+    });
+    document.addEventListener('dragover', event => { if (event.dataTransfer?.types.includes('Files')) event.preventDefault(); });
+    document.addEventListener('drop', event => { if (event.dataTransfer?.types.includes('Files')) event.preventDefault(); });
+    document.addEventListener('click', event => {
+      if (!exportMenu.contains(event.target)) exportMenu.open = false;
+      if (!documentMenu.contains(event.target)) documentMenu.open = false;
+    });
+    document.getElementById('btnHelp').addEventListener('click', () => helpDialog.showModal());
+    document.getElementById('btnCloseHelp').addEventListener('click', () => helpDialog.close());
+    helpDialog.addEventListener('click', event => {
+      const bounds = helpDialog.getBoundingClientRect();
+      if (event.target === helpDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) helpDialog.close();
+    });
+    mobileEdit.addEventListener('click', () => setWorkspaceView('edit', true));
     mobilePreview.addEventListener('click', () => setWorkspaceView('preview'));
+    viewSplit.addEventListener('click', () => setWorkspaceView('split'));
+    const mobileQuery = window.matchMedia('(max-width:760px)');
+    mobileQuery.addEventListener('change', event => setWorkspaceView(event.matches ? 'edit' : 'split'));
+    document.addEventListener('visibilitychange', () => { if (document.hidden && !draftSaved) saveDraft(); });
+    window.addEventListener('pagehide', () => { if (!draftSaved) saveDraft(); });
 
     setPreviewMode('desktop');
-    setWorkspaceView('edit');
-    input.value = '';
+    setWorkspaceView(mobileQuery.matches ? 'edit' : 'split');
+    restoreDraft();
+    document.getElementById('pasteShortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ V' : 'Ctrl V';
     updatePreview();
   </script>
 </body>
