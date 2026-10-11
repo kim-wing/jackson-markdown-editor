@@ -143,4 +143,3 @@ test('sample is read from template content, and IME composition is handled', () 
   assert.match(html, /addEventListener\('compositionstart'/);
   assert.match(html, /addEventListener\('compositionend'/);
 });
-
